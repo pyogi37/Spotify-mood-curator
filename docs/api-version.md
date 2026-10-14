@@ -58,10 +58,31 @@ Every `plan` run reports:
 - **Discoveries you already know**, meaning songs it called discoveries that you already play.
 - **Songs not found on Spotify**, a rough measure of how often the model made a song up or got its name wrong.
 
+## First live run (14 October 2026)
+
+One account, Windows 11. The audit read 150 top tracks, 135 top artists, 50 recent plays, 2,000 Liked Songs and 43 owned playlists. It left out 15 playlists made earlier by the browser skill, plus 17 sleep-sound plays.
+
+Brief: "everyday solo driving: long drives, loud guitars, getting out of my head", 25 songs, 30% discovery requested.
+
+| Metric | Result |
+|---|---|
+| Songs found on Spotify | 25 / 25 (0 of 4 spares needed) |
+| Wrong versions (live, sped up, cover) | 0 |
+| Evidence mix | 6 played, 6 saved, 8 known artist, 5 new |
+| Discovery share achieved | 20% (30% requested) |
+| Planned discoveries the data showed were already known | 2 of 7 |
+| Anchors not backed by data | 0 |
+| Verify after build | 25/25 saved, order matches, no duplicates |
+
+The main finding: the planner overestimates novelty. 2 of 7 "discoveries" were already in the library or by a known artist. The data-computed labels caught both. A re-plan loop that swaps those for new picks would fix it automatically.
+
+Bugs found and fixed during the run: Windows cp1252 encoding crashes, no progress output during long reads, the planner's own earlier playlists counting as taste, sleep sounds ranking as a top artist, blank artist names from local files, and "null" playlist descriptions.
+
 ## Not built yet
 
 - [ ] Keep/skip evaluation: re-read the playlist after a week and compare it with recently played
 - [ ] Library folders: the Web API can't create folders, so this stays in the browser skill
 - [ ] Custom cover upload (`PUT /playlists/{id}/images`)
 - [ ] Batch mode: several moods from one audit
-- [ ] A live run against a real account (the tests use mocked Spotify and Claude responses)
+- [ ] Automatic re-plan when the discovery share misses the target
+- [x] A live run against a real account

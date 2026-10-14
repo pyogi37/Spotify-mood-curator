@@ -8,6 +8,7 @@ Playlists this tool created are excluded so it never learns from its own picks.
 
 from __future__ import annotations
 
+import html
 import json
 import re
 from collections import defaultdict
@@ -96,6 +97,11 @@ def is_noise(track: dict) -> bool:
     return bool(NOISE_WORDS.search(f"{track['name']} {track.get('album') or ''}"))
 
 
+def _clean_description(d: str | None) -> str:
+    d = html.unescape(d or "").strip()
+    return "" if d.lower() in ("null", "none") else d
+
+
 def build_profile(snap: dict, exclude: dict | None = None) -> dict:
     """Turn a raw snapshot into weighted artists, known tracks and lanes.
 
@@ -172,7 +178,7 @@ def build_profile(snap: dict, exclude: dict | None = None) -> dict:
     ranked = sorted(artist_score.items(), key=lambda kv: kv[1], reverse=True)
     artists = [
         {"key": k, "name": artist_name[k], "score": round(s, 1), "genres": artist_genres.get(k, [])}
-        for k, s in ranked
+        for k, s in ranked if artist_name.get(k, "").strip()   # local files can have blank artists
     ]
     play_sources = {"top_tracks_long_term", "top_tracks_medium_term", "top_tracks_short_term", "recently_played"}
     favourite_tracks = sorted(
@@ -195,7 +201,7 @@ def build_profile(snap: dict, exclude: dict | None = None) -> dict:
         "known_artist_names": sorted({a["name"].lower() for a in artists}),
         "favourite_tracks": favourite_tracks[:150],
         "playlist_names": [
-            {"name": p["name"], "description": p["description"]}
+            {"name": p["name"], "description": _clean_description(p["description"])}
             for p in snap.get("playlists", [])
             if p["owned"] and not p.get("created_by_curator") and p["name"].casefold() not in skip_playlists
         ],

@@ -259,3 +259,13 @@ def test_profile_drops_noise_and_excluded_playlists():
     assert "Someone" not in names                          # only appeared in the excluded playlist
     assert prof["skipped"]["noise_artists"] == ["Edy Boman"]
     assert prof["skipped"]["excluded_playlists"] == ["Old Mix"]
+
+
+def test_profile_ignores_blank_artists_and_null_descriptions():
+    snap = snapshot()
+    snap["saved"].append(trk("u:local", "Voice memo", " "))
+    snap["playlists"][0]["description"] = "null"
+    snap["playlists"][0]["created_by_curator"] = False
+    prof = audit.build_profile(snap)
+    assert all(a["name"].strip() for a in prof["artists"])
+    assert prof["playlist_names"][0]["description"] == ""
