@@ -234,3 +234,14 @@ def test_playlist_items_reads_new_and_old_field_names(tmp_path):
     ], "next": None})
     items = Spotify(tok).playlist_items("p")
     assert [i["item"]["uri"] for i in items] == ["u:1", "u:2"]
+
+
+def test_files_are_utf8_regardless_of_locale(tmp_path, monkeypatch):
+    import locale
+    from curator.build import load_json, save_json
+    monkeypatch.setattr(locale, "getpreferredencoding", lambda *a, **k: "cp1252")
+    data = {"title": "दिल से रे", "artist": "Ghulām ʿAlī"}
+    save_json(data, tmp_path / "x.json")
+    audit.save(data, tmp_path / "y.json")
+    assert load_json(tmp_path / "x.json") == data
+    assert json.loads((tmp_path / "y.json").read_bytes().decode("utf-8")) == data

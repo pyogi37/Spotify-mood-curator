@@ -164,4 +164,4 @@ def profile_for_prompt(profile: dict, n_artists: int = 80, n_tracks: int = 100) 
 
 def save(obj: dict, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=2, ensure_ascii=False))
+    path.write_text(json.dumps(obj, indent=2, ensure_ascii=False), encoding="utf-8")

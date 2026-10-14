@@ -112,7 +112,7 @@ def login(client_id: str, redirect_uri: str, token_path: Path, open_browser: boo
     token["expires_at"] = time.time() + token["expires_in"] - 60
     token["client_id"] = client_id
     token_path.parent.mkdir(parents=True, exist_ok=True)
-    token_path.write_text(json.dumps(token, indent=2))
+    token_path.write_text(json.dumps(token, indent=2), encoding="utf-8")
     return token
 
 
@@ -125,7 +125,7 @@ class Spotify:
         self.sleep = sleep
         if not token_path.exists():
             raise SpotifyError("Not logged in. Run `curator login` first.")
-        self.token = json.loads(token_path.read_text())
+        self.token = json.loads(token_path.read_text(encoding="utf-8"))
 
     # token handling
     def _refresh(self) -> None:
@@ -139,7 +139,7 @@ class Spotify:
         new = resp.json()
         self.token.update(new)
         self.token["expires_at"] = time.time() + new["expires_in"] - 60
-        self.token_path.write_text(json.dumps(self.token, indent=2))
+        self.token_path.write_text(json.dumps(self.token, indent=2), encoding="utf-8")
 
     def request(self, method: str, path: str, *, params=None, body=None, retries: int = 5) -> Any:
         if time.time() >= self.token.get("expires_at", 0):

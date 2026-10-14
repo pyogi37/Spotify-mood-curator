@@ -25,7 +25,7 @@ def _load_dotenv(path: Path = Path(".env")) -> None:
     """Read KEY=value lines from .env without overriding variables already set."""
     if not path.exists():
         return
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if line and not line.startswith("#") and "=" in line:
             key, value = line.split("=", 1)
@@ -162,6 +162,10 @@ def main(argv=None):
     s.add_argument("slug")
     s.set_defaults(func=cmd_verify)
 
+    # Windows consoles default to cp1252, which can't print many song titles.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     args = p.parse_args(argv)
     args.func(args)
 
