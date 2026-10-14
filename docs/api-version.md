@@ -78,6 +78,20 @@ The main finding: the planner overestimates novelty. 2 of 7 "discoveries" were a
 
 Bugs found and fixed during the run: Windows cp1252 encoding crashes, no progress output during long reads, the planner's own earlier playlists counting as taste, sleep sounds ranking as a top artist, blank artist names from local files, and "null" playlist descriptions.
 
+## Second live run: favourites only
+
+Brief: "my personal favourites, centred on Pearl Jam, Audioslave, Jane's Addiction and Alice In Chains, with deep cuts I play a lot". 30 songs, `--discovery 0 --evidence-tracks 300`.
+
+| Metric | Result |
+|---|---|
+| Songs found | 30 / 30 |
+| Evidence mix, first preview | 10 played, 17 saved, 3 "known artist" |
+| Evidence mix, after the own-copy fix | 10 played, 20 saved |
+| Anchors not backed by data | 0 |
+| Verify after build | 30/30 saved, order matches, no duplicates |
+
+The finding: those 3 "known artist" songs were songs the listener already had, but search returned another album's copy (a deluxe edition instead of the *Singles* soundtrack, for example). The resolver now checks the listener's own library first and only searches when they don't have the song. That keeps the exact recording they play, keeps the evidence label honest, and needs fewer API calls.
+
 ## Not built yet
 
 - [ ] Keep/skip evaluation: re-read the playlist after a week and compare it with recently played
