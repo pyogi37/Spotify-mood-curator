@@ -55,7 +55,7 @@ Every `plan` run reports:
 - **The evidence mix:** songs you've played, songs you've saved, other songs by artists you know, and new songs.
 - **The discovery share achieved** against the share you asked for.
 - **Anchors not backed by data**, which shows how often the model's "you'll know this" claim was wrong.
-- **Discoveries you already know**, meaning songs it called discoveries that you already play.
+- **Discoveries you already know**, meaning songs it called discoveries that you already play or saved, and, counted separately, ones by artists you already play.
 - **Songs not found on Spotify**, a rough measure of how often the model made a song up or got its name wrong.
 
 ## First live run (14 October 2026)

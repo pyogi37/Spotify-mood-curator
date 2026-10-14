@@ -6,9 +6,9 @@ import pytest
 import responses
 
 from curator import audit
-from curator.build import build, verify
+from curator.build import build, summary_table, verify
 from curator.plan import Plan, PlannedTrack, make_plan
-from curator.resolve import bad_version, best_match, label_evidence, norm, resolve
+from curator.resolve import bad_version, best_match, label_evidence, mix_stats, norm, resolve
 from curator.spotify import API, Spotify
 
 
@@ -137,6 +137,22 @@ def test_resolve_build_verify_end_to_end(tmp_path):
     report = verify(sp, progress["playlist_id"], resolved)
     assert report["ok"] and report["saved"] == 2
     assert json.loads((tmp_path / "reg.json").read_text())[0]["name"] == "Test"
+
+
+def test_discoveries_by_known_artists_are_flagged():
+    # First live run: one planned discovery was already saved, another was by an artist the listener plays.
+    tracks = [
+        {"planned_intent": "discovery", "evidence": "known_saved_track"},
+        {"planned_intent": "discovery", "evidence": "known_artist_extension"},
+        {"planned_intent": "discovery", "evidence": "exploratory"},
+        {"planned_intent": "anchor", "evidence": "known_history_track"},
+    ]
+    stats = mix_stats(tracks)
+    assert stats["discoveries_already_known"] == 1
+    assert stats["discoveries_by_known_artist"] == 1
+    table = summary_table({"name": "T", "description": "t.", "folder": ""},
+                          {"stats": stats, "missing": [], "tracks": []})
+    assert "2 songs the planner called discoveries aren't new to you (1 you play or saved, 1 by artists you play)" in table
 
 
 def test_build_resumes_without_duplicates(tmp_path):

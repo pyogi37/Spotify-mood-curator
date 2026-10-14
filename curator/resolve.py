@@ -159,15 +159,19 @@ def mix_stats(tracks: list[dict]) -> dict:
     for t in tracks:
         counts[t["evidence"]] = counts.get(t["evidence"], 0) + 1
     exploratory = counts.get("exploratory", 0)
-    # "anchor" claims the data can't back up, and "discoveries" the listener already plays.
+    # "anchor" claims the data can't back up, and "discoveries" the listener already plays,
+    # or that are by an artist they already play (not new to them either).
     false_anchor = sum(1 for t in tracks if t["planned_intent"] == "anchor" and t["evidence"] == "exploratory")
     stale_discovery = sum(1 for t in tracks if t["planned_intent"] == "discovery" and t["evidence"] in
                           ("known_history_track", "known_saved_track"))
+    known_artist_discovery = sum(1 for t in tracks if t["planned_intent"] == "discovery"
+                                 and t["evidence"] == "known_artist_extension")
     return {
         "count": len(tracks),
         "evidence_counts": counts,
         "discovery_share": round(exploratory / n, 2),
         "anchors_not_backed_by_data": false_anchor,
         "discoveries_already_known": stale_discovery,
+        "discoveries_by_known_artist": known_artist_discovery,
         "minutes": round(sum(t.get("duration_ms") or 0 for t in tracks) / 60000),
     }

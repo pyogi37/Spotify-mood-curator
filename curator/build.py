@@ -24,6 +24,11 @@ def summary_table(plan: dict, resolved: dict) -> str:
     ]
     if s["anchors_not_backed_by_data"]:
         lines.append(f"  note: {s['anchors_not_backed_by_data']} songs the planner called anchors aren't in your data")
+    known = s.get("discoveries_already_known", 0) + s.get("discoveries_by_known_artist", 0)
+    if known:
+        lines.append(f"  note: {known} songs the planner called discoveries aren't new to you "
+                     f"({s.get('discoveries_already_known', 0)} you play or saved, "
+                     f"{s.get('discoveries_by_known_artist', 0)} by artists you play)")
     if resolved["missing"]:
         lines.append(f"  not found on Spotify: {len(resolved['missing'])}")
     lines.append("")

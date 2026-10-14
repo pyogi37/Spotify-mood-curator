@@ -23,7 +23,7 @@ These are honest impressions, not measured skip rates yet. A proper keep/skip ch
 
 ## How it works
 
-The skill runs inside Claude with browser access to your logged-in Spotify web player. It doesn't need the Spotify API or a developer app.
+There are two ways to run it. This section describes the **browser route**: the skill runs inside Claude with browser access to your logged-in Spotify web player, with no Spotify API or developer app. The **CLI route** does the same loop through the Spotify Web API (see [API version](#api-version) below).
 
 1. **Account check.** It confirms which Spotify account is logged in before touching anything.
 2. **Taste audit.** It reads your top songs, top artists, recent plays, Liked Songs (sampling both the newest and oldest), your own playlists and shared ones, then weights them:
@@ -57,7 +57,15 @@ The skill runs inside Claude with browser access to your logged-in Spotify web p
 
 In total the run built or refreshed 19 playlists and organized a 42-playlist library into five folders.
 
-> **API version in progress:** a Python CLI built on the Spotify Web API and the Claude API lives on the [`api-version`](../../tree/api-version) branch. See [docs/api-version.md](docs/api-version.md).
+## API version
+
+`curator` is a Python CLI that runs the same audit, plan, approve, build and verify loop through the Spotify Web API. It's faster, it doesn't break when Spotify's UI changes, and every decision is written to a file you can inspect.
+
+- **Claude proposes songs, your data labels them.** Each song comes back marked played, saved, by an artist you play, or new, computed from your Spotify data rather than taken from the model.
+- **No API key needed.** Without `ANTHROPIC_API_KEY`, `curator plan` writes a prompt you paste into a Claude chat, or the Claude running the skill writes the plan itself.
+- **Two live runs on a real account:** 25 of 25 and 30 of 30 songs saved in the planned order, with no duplicates. The first showed the planner overestimates novelty: 2 of 7 planned "discoveries" weren't new, and the labels caught both.
+
+Setup, commands and both runs: [docs/api-version.md](docs/api-version.md). `SKILL.md` covers both routes.
 
 ## Install
 
@@ -84,7 +92,7 @@ The costs are real:
 - **Terms of use.** Spotify's terms restrict automated access to the service. Run this only on your own account, at your own pace, and read the terms yourself. This is a personal-use experiment, not a tool for automating Spotify at scale.
 - **Fragility.** Any UI change can break a step, and clicking through the interface is slow (a full library pass took hours).
 
-The interesting part is the agent design (evidence weighting, a plan you approve, resumable progress files and verification against what was actually saved), and that carries over unchanged to an API version. That version is on the roadmap.
+The interesting part is the agent design (evidence weighting, a plan you approve, resumable progress files and verification against what was actually saved), and it carries over unchanged to the [API version](#api-version), which is now the recommended route. The browser route is still the one that can make library folders and upload covers.
 
 ## Limitations
 
@@ -97,7 +105,8 @@ The interesting part is the agent design (evidence weighting, a plan you approve
 
 - [ ] Test on 2 to 3 listeners with different taste
 - [ ] Keep/skip evaluation one week after a run
-- [ ] Spotify Web API path for reading history and writing playlists, keeping the same plan, approve and verify loop
+- [x] Spotify Web API path for reading history and writing playlists, keeping the same plan, approve and verify loop
+- [ ] Automatic re-plan when the discovery share misses the target
 
 ## License
 
