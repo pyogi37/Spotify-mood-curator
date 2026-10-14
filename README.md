@@ -4,6 +4,23 @@ A Claude skill that studies your actual Spotify listening and builds playlists f
 
 I built this because my library had become a pile of Shazam imports and half-finished playlists. Spotify's own mixes kept giving me the same 30 songs. I wanted playlists for specific moments that actually understood what I listen to, including the parts that don't fit one genre: grunge and Pink Floyd, but also ghazals, Hindi indie and desi hip-hop.
 
+![The 14 playlist covers generated in one run](assets/covers-grid.jpg)
+
+*One run: 14 playlists, each with a generated cover in a shared film-photo style and no text or logos.*
+
+## Results
+
+- **19 playlists** built or refreshed from one taste audit (15 new mixes, 4 of my old playlists extended), and a 42-playlist library sorted into 5 folders.
+- **I liked almost every song.** When I asked for more, the expansion pass added 21 songs from new directions (CAN, Mdou Moctar, Jorge Ben Jor, Cocteau Twins) instead of repeating what I already had.
+- **Friends liked them too.** I shared the playlists with friends and they liked them, an early sign it isn't only fitting my taste.
+- **What I'd change:** the first batch was too safe. It played my existing favourites back to me. Adding a deliberate share of discoveries (see below) fixed that.
+
+These are honest impressions, not measured skip rates yet. A proper keep/skip check is on the roadmap.
+
+| Library sorted into folders | A finished mix with its cover and description |
+|---|---|
+| ![Library folders](assets/library-folders.png) | ![loud feelings playlist](assets/loud-feelings.png) |
+
 ## How it works
 
 The skill runs inside Claude with browser access to your logged-in Spotify web player. It doesn't need the Spotify API or a developer app.
@@ -52,19 +69,33 @@ Then ask something like:
 
 You need a browser tool Claude can drive (Claude in Chrome or the desktop browser pane) and to be logged in to open.spotify.com.
 
+## Why the browser and not the Spotify API?
+
+This was a fair trade-off for a personal experiment, not the right choice for a product.
+
+- **Speed of trying it.** No developer app, OAuth setup or token handling. I could test whether the curation logic was any good in one evening.
+- **The API lost the parts that matter for music reasoning.** In late 2024 Spotify restricted new apps from endpoints such as recommendations, related artists and audio features (tempo, energy and so on). Reading top tracks and saved songs and creating playlists still works, but the musical judgement has to come from the model either way.
+- **The web player shows things the API doesn't surface easily**, like the play counts on your all-time top songs.
+
+The costs are real:
+
+- **Terms of use.** Spotify's terms restrict automated access to the service. Run this only on your own account, at your own pace, and read the terms yourself. This is a personal-use experiment, not a tool for automating Spotify at scale.
+- **Fragility.** Any UI change can break a step, and clicking through the interface is slow (a full library pass took hours).
+
+The interesting part is the agent design (evidence weighting, a plan you approve, resumable progress files and verification against what was actually saved), and that carries over unchanged to an API version. That version is on the roadmap.
+
 ## Limitations
 
-- **It drives the web interface.** It will break when Spotify changes its UI, and a large run takes a long time (my full library pass took hours).
 - **It sees a sample, not your full history.** It reads what the web player shows, not a lifetime export. For deeper history, use [Exportify](https://exportify.net) or Spotify's "Download your data" (extended streaming history).
-- **Tested on one account so far: mine.** The discovery ratio and lane rules may be tuned to my taste. Results from other listeners are welcome.
-- **No evaluation yet** beyond "I kept the playlists and asked for more." Next up is a keep/skip check a week after creation, comparing familiar songs with discoveries.
+- **Tested on one account so far: mine** (plus friends listening to the shared results). The discovery ratio and lane rules may be tuned to my taste. Results from other listeners are welcome.
+- **No measured evaluation yet.** Next up is a keep/skip check a week after creation, comparing familiar songs with discoveries.
 - It never claims a song is "safe" or will create a particular experience under the influence. A trip playlist is about musical arc, nothing more.
 
 ## Roadmap
 
 - [ ] Test on 2 to 3 listeners with different taste
 - [ ] Keep/skip evaluation one week after a run
-- [ ] Optional Spotify Web API path for reading history and writing playlists (more reliable than clicking through the web player)
+- [ ] Spotify Web API path for reading history and writing playlists, keeping the same plan, approve and verify loop
 
 ## License
 
