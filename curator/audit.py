@@ -137,6 +137,7 @@ def build_profile(snap: dict, exclude: dict | None = None) -> dict:
         rec = tracks.setdefault(track["uri"], {
             "uri": track["uri"], "name": track["name"],
             "artists": [a["name"] for a in track["artists"]], "sources": [],
+            "duration_ms": track.get("duration_ms"), "album": track.get("album"),
         })
         if source not in rec["sources"]:
             rec["sources"].append(source)
@@ -198,7 +199,8 @@ def build_profile(snap: dict, exclude: dict | None = None) -> dict:
         "artists": artists,
         "skipped": skipped,
         "known_tracks": {uri: t["sources"] for uri, t in sorted(tracks.items())},
-        "track_index": {uri: {"name": t["name"], "artists": t["artists"]} for uri, t in sorted(tracks.items())},
+        "track_index": {uri: {"name": t["name"], "artists": t["artists"], "album": t.get("album"),
+                              "duration_ms": t.get("duration_ms")} for uri, t in sorted(tracks.items())},
         "known_artist_names": sorted({a["name"].lower() for a in artists}),
         "favourite_tracks": favourite_tracks[:400],
         "playlist_names": [

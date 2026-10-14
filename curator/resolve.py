@@ -106,7 +106,8 @@ def own_copy(title: str, artist: str, profile: dict) -> dict | None:
         rank = sum(SOURCE_RANK.get(src, 0) for src in profile["known_tracks"].get(uri, []))
         if rank > best_rank:
             best, best_rank = {"uri": uri, "name": info["name"],
-                               "artists": [{"name": a} for a in info["artists"]], "album": None}, rank
+                               "artists": [{"name": a} for a in info["artists"]],
+                               "album": info.get("album"), "duration_ms": info.get("duration_ms")}, rank
     return best
 
 
@@ -120,7 +121,8 @@ def resolve(plan: Plan, sp, profile: dict, target_count: int) -> dict:
             seen.add(mine["uri"])
             resolved.append({
                 "position": len(resolved) + 1, "uri": mine["uri"], "title": mine["name"],
-                "artists": [a["name"] for a in mine["artists"]], "album": None, "duration_ms": None,
+                "artists": [a["name"] for a in mine["artists"]], "album": mine.get("album"),
+                "duration_ms": mine.get("duration_ms"),
                 "planned_intent": pt.intent, "evidence": label_evidence(mine, profile), "why": pt.why,
                 "source": "your library",
             })
