@@ -53,13 +53,17 @@ def cmd_login(args):
 def cmd_audit(args):
     sp = Spotify(TOKEN)
     created = {p["id"] for p in load_json(REGISTRY, [])}
-    snap = audit_mod.collect(sp, created, max_saved=args.max_saved)
+    snap = audit_mod.collect(sp, created, max_saved=args.max_saved, log=lambda m: print(m, flush=True))
     audit_mod.save(snap, DATA / "snapshot.json")
     profile = audit_mod.build_profile(snap)
     audit_mod.save(profile, DATA / "profile.json")
-    print(f"Account: {snap['user']['display_name']}")
-    print(f"Evidence: {profile['evidence_size']}")
-    print("Top artists:", ", ".join(a["name"] for a in profile["artists"][:15]))
+    summary = "\n".join([
+        f"Account: {snap['user']['display_name']}",
+        f"Evidence: {profile['evidence_size']}",
+        "Top artists: " + ", ".join(a["name"] for a in profile["artists"][:25]),
+    ])
+    (DATA / "audit-summary.txt").write_text(summary + "\n", encoding="utf-8")
+    print("\n" + summary)
 
 
 def cmd_plan(args):

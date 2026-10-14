@@ -39,8 +39,9 @@ def _slim_track(t: dict) -> dict:
     }
 
 
-def collect(sp: Spotify, created_ids: set[str], max_saved: int | None = 2000) -> dict:
+def collect(sp: Spotify, created_ids: set[str], max_saved: int | None = 2000, log=lambda msg: None) -> dict:
     me = sp.me()
+    log(f"Account: {me.get('display_name')}")
     snap: dict = {
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "user": {"id": me["id"], "display_name": me.get("display_name")},
@@ -51,15 +52,22 @@ def collect(sp: Spotify, created_ids: set[str], max_saved: int | None = 2000) ->
         snap["top_artists"][tr] = [
             {"id": a["id"], "name": a["name"], "genres": a.get("genres", [])} for a in sp.top("artists", tr)
         ]
+        log(f"Top tracks and artists ({tr.replace('_', ' ')}): {len(snap['top_tracks'][tr])} tracks, "
+            f"{len(snap['top_artists'][tr])} artists")
+    log("Recently played...")
     snap["recently_played"] = [
         {**_slim_track(i["track"]), "played_at": i.get("played_at")} for i in sp.recently_played()
     ]
+    log(f"Liked Songs (up to {max_saved}), 50 at a time...")
     snap["saved"] = [
         {**_slim_track(i["track"]), "added_at": i.get("added_at")}
         for i in sp.saved_tracks(max_items=max_saved) if i.get("track")
     ]
+    log(f"Liked Songs read: {len(snap['saved'])}")
     playlists = []
-    for p in sp.my_playlists():
+    all_playlists = sp.my_playlists()
+    log(f"Playlists in your library: {len(all_playlists)}. Reading the ones you own...")
+    for p in all_playlists:
         own = p.get("owner", {}).get("id") == me["id"]
         entry = {
             "id": p["id"], "name": p["name"], "description": p.get("description") or "",
@@ -71,6 +79,7 @@ def collect(sp: Spotify, created_ids: set[str], max_saved: int | None = 2000) ->
                 {**_slim_track(i["item"]), "added_by": (i.get("added_by") or {}).get("id")}
                 for i in sp.playlist_items(p["id"])
             ]
+            log(f"  {p['name']}: {len(entry['tracks'])} songs")
         playlists.append(entry)
     snap["playlists"] = playlists
     return snap
