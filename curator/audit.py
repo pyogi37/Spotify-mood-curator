@@ -198,6 +198,7 @@ def build_profile(snap: dict, exclude: dict | None = None) -> dict:
         "artists": artists,
         "skipped": skipped,
         "known_tracks": {uri: t["sources"] for uri, t in sorted(tracks.items())},
+        "track_index": {uri: {"name": t["name"], "artists": t["artists"]} for uri, t in sorted(tracks.items())},
         "known_artist_names": sorted({a["name"].lower() for a in artists}),
         "favourite_tracks": favourite_tracks[:400],
         "playlist_names": [

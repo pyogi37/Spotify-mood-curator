@@ -84,11 +84,47 @@ def label_evidence(track: dict, profile: dict) -> str:
     return "exploratory"
 
 
+SOURCE_RANK = {"top_tracks_long_term": 6, "top_tracks_medium_term": 5, "top_tracks_short_term": 4,
+               "recently_played": 3, "saved": 2, "own_playlist": 1}
+
+
+def own_copy(title: str, artist: str, profile: dict) -> dict | None:
+    """The listener's own copy of a song, if they have one.
+
+    Spotify often has the same recording on several albums (original, deluxe, soundtrack).
+    Search may return any of them; the copy they actually play is the one that belongs
+    in their playlist, and it keeps the evidence label honest.
+    """
+    best, best_rank = None, -1
+    for uri, info in profile.get("track_index", {}).items():
+        if similarity(info["name"], title) < 0.95:
+            continue
+        if not any(similarity(a, artist) >= 0.9 or norm(artist) in norm(a) for a in info["artists"]):
+            continue
+        if bad_version({"name": info["name"], "album": {"name": ""}}, title):
+            continue
+        rank = sum(SOURCE_RANK.get(src, 0) for src in profile["known_tracks"].get(uri, []))
+        if rank > best_rank:
+            best, best_rank = {"uri": uri, "name": info["name"],
+                               "artists": [{"name": a} for a in info["artists"]], "album": None}, rank
+    return best
+
+
 def resolve(plan: Plan, sp, profile: dict, target_count: int) -> dict:
     resolved, missing, seen = [], [], set()
     for pt in plan.tracks:
         if len(resolved) >= target_count:
             break
+        mine = own_copy(pt.title, pt.artist, profile)
+        if mine and mine["uri"] not in seen:
+            seen.add(mine["uri"])
+            resolved.append({
+                "position": len(resolved) + 1, "uri": mine["uri"], "title": mine["name"],
+                "artists": [a["name"] for a in mine["artists"]], "album": None, "duration_ms": None,
+                "planned_intent": pt.intent, "evidence": label_evidence(mine, profile), "why": pt.why,
+                "source": "your library",
+            })
+            continue
         match, why = best_match(sp.search_tracks(f"track:{pt.title} artist:{pt.artist}"), pt.title, pt.artist)
         if not match:  # field filters can be too strict with accents or "feat."
             match, why2 = best_match(sp.search_tracks(f"{pt.title} {pt.artist}"), pt.title, pt.artist)
@@ -110,6 +146,7 @@ def resolve(plan: Plan, sp, profile: dict, target_count: int) -> dict:
             "planned_intent": pt.intent,
             "evidence": evidence,
             "why": pt.why,
+            "source": "search",
         })
     return {"tracks": resolved, "missing": missing, "stats": mix_stats(resolved)}
 

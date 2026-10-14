@@ -269,3 +269,16 @@ def test_profile_ignores_blank_artists_and_null_descriptions():
     prof = audit.build_profile(snap)
     assert all(a["name"].strip() for a in prof["artists"])
     assert prof["playlist_names"][0]["description"] == ""
+
+
+def test_resolve_prefers_the_listeners_own_copy():
+    snap = snapshot()
+    snap["saved"].append(trk("u:singles", "Seasons", "Chris Cornell", "Singles OST"))
+    prof = audit.build_profile(snap)
+    deluxe = trk("u:deluxe", "Seasons", "Chris Cornell", "Chris Cornell (Deluxe Edition)")
+    sp = FakeSpotify([deluxe])
+    plan = make_plan_obj([("Seasons", "Chris Cornell")])
+    out = resolve(plan, sp, prof, target_count=5)
+    assert out["tracks"][0]["uri"] == "u:singles"
+    assert out["tracks"][0]["evidence"] == "known_saved_track"
+    assert out["tracks"][0]["source"] == "your library"
