@@ -245,3 +245,17 @@ def test_files_are_utf8_regardless_of_locale(tmp_path, monkeypatch):
     audit.save(data, tmp_path / "y.json")
     assert load_json(tmp_path / "x.json") == data
     assert json.loads((tmp_path / "y.json").read_bytes().decode("utf-8")) == data
+
+
+def test_profile_drops_noise_and_excluded_playlists():
+    snap = snapshot()
+    snap["saved"] += [trk("u:rain", "Rain And Thunder For Deep Sleep", "Edy Boman")]
+    snap["top_artists"]["short_term"] = [{"id": "edy boman", "name": "Edy Boman", "genres": []}]
+    snap["playlists"][0]["name"] = "Old Mix"
+    prof = audit.build_profile(snap, {"playlists": ["old mix"]})
+    names = [a["name"] for a in prof["artists"]]
+    assert "Edy Boman" not in names
+    assert "u:rain" not in prof["known_tracks"]
+    assert "Someone" not in names                          # only appeared in the excluded playlist
+    assert prof["skipped"]["noise_artists"] == ["Edy Boman"]
+    assert prof["skipped"]["excluded_playlists"] == ["Old Mix"]

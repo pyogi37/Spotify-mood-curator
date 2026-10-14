@@ -2,6 +2,7 @@
 
   curator login                      one-time Spotify login (PKCE)
   curator audit                      read your listening data, write the taste profile
+  curator profile                    rebuild the profile offline after editing data/exclude.json
   curator plan "brief" --name slug   ask Claude for a plan, match it to Spotify, show it
   curator build slug                 create the playlist after you approve it
   curator verify slug                compare what Spotify saved with the plan
@@ -55,15 +56,30 @@ def cmd_audit(args):
     created = {p["id"] for p in load_json(REGISTRY, [])}
     snap = audit_mod.collect(sp, created, max_saved=args.max_saved, log=lambda m: print(m, flush=True))
     audit_mod.save(snap, DATA / "snapshot.json")
-    profile = audit_mod.build_profile(snap)
+    _write_profile(snap)
+
+
+def _write_profile(snap: dict) -> None:
+    exclude = load_json(DATA / "exclude.json", {})
+    profile = audit_mod.build_profile(snap, exclude)
     audit_mod.save(profile, DATA / "profile.json")
+    sk = profile["skipped"]
     summary = "\n".join([
         f"Account: {snap['user']['display_name']}",
         f"Evidence: {profile['evidence_size']}",
         "Top artists: " + ", ".join(a["name"] for a in profile["artists"][:25]),
+        f"Left out: {sk['noise_tracks']} sleep/noise plays, artists {sk.get('noise_artists', [])}, "
+        f"{len(sk['excluded_playlists'])} excluded playlists",
     ])
     (DATA / "audit-summary.txt").write_text(summary + "\n", encoding="utf-8")
     print("\n" + summary)
+
+
+def cmd_profile(args):
+    snap = load_json(DATA / "snapshot.json")
+    if not snap:
+        sys.exit("Run `curator audit` first.")
+    _write_profile(snap)
 
 
 def cmd_plan(args):
@@ -142,6 +158,9 @@ def main(argv=None):
     s = sub.add_parser("audit")
     s.add_argument("--max-saved", type=int, default=2000, help="cap on Liked Songs to read")
     s.set_defaults(func=cmd_audit)
+
+    s = sub.add_parser("profile", help="rebuild the taste profile from the last audit (after editing data/exclude.json)")
+    s.set_defaults(func=cmd_profile)
 
     s = sub.add_parser("plan")
     s.add_argument("brief", help='e.g. "long drives alone, loud guitars, forward motion"')

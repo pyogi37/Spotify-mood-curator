@@ -9,6 +9,7 @@ Playlists this tool created are excluded so it never learns from its own picks.
 from __future__ import annotations
 
 import json
+import re
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -85,15 +86,48 @@ def collect(sp: Spotify, created_ids: set[str], max_saved: int | None = 2000, lo
     return snap
 
 
-def build_profile(snap: dict) -> dict:
-    """Turn a raw snapshot into weighted artists, known tracks and lanes."""
+# Sleep and background-noise tracks say how someone sleeps, not what music they like.
+NOISE_WORDS = re.compile(
+    r"\b(white noise|brown noise|pink noise|rain sounds?|thunder(storm)?s?|sounds? for (deep )?sleep|"
+    r"sleep sounds?|deep sleep|ocean waves|fan noise|binaural|asmr)\b", re.I)
+
+
+def is_noise(track: dict) -> bool:
+    return bool(NOISE_WORDS.search(f"{track['name']} {track.get('album') or ''}"))
+
+
+def build_profile(snap: dict, exclude: dict | None = None) -> dict:
+    """Turn a raw snapshot into weighted artists, known tracks and lanes.
+
+    exclude: {"playlists": [names], "artists": [names]}. Use it for playlists this tool
+    (or anything else automated) made before the registry existed, and for artists you
+    don't want treated as taste.
+    """
+    exclude = exclude or {}
+    skip_playlists = {n.casefold() for n in exclude.get("playlists", [])}
+    skip_artists = {n.casefold() for n in exclude.get("artists", [])}
+    skipped = {"noise_tracks": 0, "excluded_artist_tracks": 0, "excluded_playlists": []}
     user_id = snap["user"]["id"]
     artist_score: dict[str, float] = defaultdict(float)
     artist_name: dict[str, str] = {}
     artist_genres: dict[str, list[str]] = {}
     tracks: dict[str, dict] = {}
 
+    noise_by_artist: dict[str, int] = defaultdict(int)
+    real_by_artist: dict[str, int] = defaultdict(int)
+
     def note(track: dict, source: str, weight: float) -> None:
+        keys = [a.get("id") or a["name"].lower() for a in track["artists"]]
+        if is_noise(track):
+            skipped["noise_tracks"] += 1
+            for k in keys:
+                noise_by_artist[k] += 1
+            return
+        for k in keys:
+            real_by_artist[k] += 1
+        if any(a["name"].casefold() in skip_artists for a in track["artists"]):
+            skipped["excluded_artist_tracks"] += 1
+            return
         rec = tracks.setdefault(track["uri"], {
             "uri": track["uri"], "name": track["name"],
             "artists": [a["name"] for a in track["artists"]], "sources": [],
@@ -110,6 +144,8 @@ def build_profile(snap: dict) -> dict:
             # Higher rank counts a bit more; never below half weight.
             note(t, f"top_tracks_{tr}", SOURCE_WEIGHTS[f"top_tracks_{tr}"] * max(0.5, 1 - rank / 100))
         for rank, a in enumerate(snap["top_artists"].get(tr, [])):
+            if a["name"].casefold() in skip_artists:
+                continue
             artist_name[a["id"]] = a["name"]
             artist_genres[a["id"]] = a.get("genres", [])
             artist_score[a["id"]] += TOP_ARTIST_WEIGHTS[tr] * max(0.3, 1 - rank / 50)
@@ -118,13 +154,21 @@ def build_profile(snap: dict) -> dict:
     for t in snap.get("saved", []):
         note(t, "saved", SOURCE_WEIGHTS["saved"])
     for p in snap.get("playlists", []):
-        if p.get("created_by_curator"):
+        if p.get("created_by_curator") or p["name"].casefold() in skip_playlists:
+            if p["name"].casefold() in skip_playlists:
+                skipped["excluded_playlists"].append(p["name"])
             continue
         for t in p.get("tracks", []):
             # In shared playlists, other people's additions count for less.
             w = SOURCE_WEIGHTS["own_playlist"] * (1.0 if t.get("added_by") in (None, user_id) else 0.4)
             note(t, "own_playlist", w)
 
+    # Top-artist lists carry no track names, so a noise-only artist can still arrive that way.
+    # Drop artists whose every track in the data was noise.
+    for key in list(artist_score):
+        if noise_by_artist.get(key) and not real_by_artist.get(key):
+            del artist_score[key]
+            skipped.setdefault("noise_artists", []).append(artist_name.get(key, key))
     ranked = sorted(artist_score.items(), key=lambda kv: kv[1], reverse=True)
     artists = [
         {"key": k, "name": artist_name[k], "score": round(s, 1), "genres": artist_genres.get(k, [])}
@@ -146,12 +190,14 @@ def build_profile(snap: dict) -> dict:
             "owned_playlists_read": sum(1 for p in snap.get("playlists", []) if p["tracks"]),
         },
         "artists": artists,
+        "skipped": skipped,
         "known_tracks": {uri: t["sources"] for uri, t in sorted(tracks.items())},
         "known_artist_names": sorted({a["name"].lower() for a in artists}),
         "favourite_tracks": favourite_tracks[:150],
         "playlist_names": [
             {"name": p["name"], "description": p["description"]}
-            for p in snap.get("playlists", []) if p["owned"] and not p.get("created_by_curator")
+            for p in snap.get("playlists", [])
+            if p["owned"] and not p.get("created_by_curator") and p["name"].casefold() not in skip_playlists
         ],
     }
 
