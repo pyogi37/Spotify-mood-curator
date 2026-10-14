@@ -21,6 +21,18 @@ from .plan import DEFAULT_MODEL, Plan, make_plan
 from .resolve import resolve
 from .spotify import Spotify, login
 
+def _load_dotenv(path: Path = Path(".env")) -> None:
+    """Read KEY=value lines from .env without overriding variables already set."""
+    if not path.exists():
+        return
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+_load_dotenv()
 DATA = Path(os.environ.get("CURATOR_DATA", "data"))
 TOKEN = DATA / "token.json"
 REGISTRY = DATA / "created_playlists.json"
