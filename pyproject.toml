@@ -1,0 +1,19 @@
+[project]
+name = "spotify-mood-curator"
+version = "0.1.0"
+description = "Audit your Spotify taste and build mood and activity playlists with Claude."
+requires-python = ">=3.10"
+dependencies = ["requests>=2.31", "pydantic>=2.5", "anthropic>=0.40"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "responses>=0.25"]
+
+[project.scripts]
+curator = "curator.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["curator"]

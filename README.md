@@ -57,6 +57,8 @@ The skill runs inside Claude with browser access to your logged-in Spotify web p
 
 In total the run built or refreshed 19 playlists and organized a 42-playlist library into five folders.
 
+> **API version in progress:** a Python CLI built on the Spotify Web API and the Claude API lives on the [`api-version`](../../tree/api-version) branch. See [docs/api-version.md](docs/api-version.md).
+
 ## Install
 
 **Claude (claude.ai / desktop):** add `SKILL.md` as a skill, or upload this folder through the skills settings.
