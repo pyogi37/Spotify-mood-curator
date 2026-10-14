@@ -34,7 +34,8 @@ Source: [Spotify's February 2026 migration guide](https://developer.spotify.com/
    python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
    pip install -e ".[dev]"
    ```
-3. Set `SPOTIFY_CLIENT_ID` and `ANTHROPIC_API_KEY` (see `.env.example`). No client secret is needed, because login uses PKCE.
+3. Copy `.env.example` to `.env` and fill in `SPOTIFY_CLIENT_ID`. No client secret is needed, because login uses PKCE.
+4. `ANTHROPIC_API_KEY` is optional. Without it, `plan` writes the prompt to `data/runs/<name>/prompt.md`. Paste that into a Claude chat, save the reply as `reply.txt`, and continue with `--from-file`. Same plan, same checks, no API key needed.
 
 ## Use
 

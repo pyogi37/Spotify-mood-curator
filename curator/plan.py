@@ -7,7 +7,9 @@ so a confident but wrong claim like "you love this one" can't slip through.
 
 from __future__ import annotations
 
+import json
 import os
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -56,13 +58,10 @@ def plan_tool_schema() -> dict:
     }
 
 
-def make_plan(profile_text: str, brief: str, target_count: int = 25, discovery_share: float = 0.3,
-              folder: str = "", feedback: str = "", client=None, model: str = DEFAULT_MODEL) -> Plan:
-    if client is None:
-        import anthropic
-        client = anthropic.Anthropic()
+def user_message(profile_text: str, brief: str, target_count: int = 25, discovery_share: float = 0.3,
+                 folder: str = "", feedback: str = "") -> str:
     n_discovery = round(target_count * discovery_share)
-    user = (
+    return (
         f"<listener_evidence>\n{profile_text}\n</listener_evidence>\n\n"
         f"Brief: {brief}\n"
         f"Length: {target_count} songs, about {n_discovery} of them discoveries (intent=discovery).\n"
@@ -71,6 +70,31 @@ def make_plan(profile_text: str, brief: str, target_count: int = 25, discovery_s
         + "Order the tracks exactly as they should play. Add 10-20% spare songs at the end; "
           "some may not be found on Spotify."
     )
+
+
+def manual_prompt(user: str) -> str:
+    """A single prompt to paste into a Claude chat when there's no API key."""
+    schema = json.dumps(Plan.model_json_schema(), indent=2)
+    return (
+        f"{SYSTEM}\n\n{user}\n\n"
+        "Reply with only one JSON object inside a ```json code block, matching this JSON schema exactly:\n\n"
+        f"```json\n{schema}\n```\n"
+    )
+
+
+def parse_manual_reply(text: str) -> Plan:
+    """Accepts the raw chat reply: a ```json block, or bare JSON."""
+    fenced = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", text, flags=re.S)
+    raw = fenced[-1] if fenced else text[text.find("{"): text.rfind("}") + 1]
+    return Plan.model_validate(json.loads(raw))
+
+
+def make_plan(profile_text: str, brief: str, target_count: int = 25, discovery_share: float = 0.3,
+              folder: str = "", feedback: str = "", client=None, model: str = DEFAULT_MODEL) -> Plan:
+    if client is None:
+        import anthropic
+        client = anthropic.Anthropic()
+    user = user_message(profile_text, brief, target_count, discovery_share, folder, feedback)
     msg = client.messages.create(
         model=model,
         max_tokens=8000,

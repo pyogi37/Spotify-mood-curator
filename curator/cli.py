@@ -17,7 +17,7 @@ from pathlib import Path
 
 from . import audit as audit_mod
 from .build import build, load_json, save_json, summary_table, verify
-from .plan import DEFAULT_MODEL, Plan, make_plan
+from .plan import DEFAULT_MODEL, make_plan, manual_prompt, parse_manual_reply, user_message
 from .resolve import resolve
 from .spotify import Spotify, login
 
@@ -66,9 +66,25 @@ def cmd_plan(args):
     profile = load_json(DATA / "profile.json")
     if not profile:
         sys.exit("Run `curator audit` first.")
-    plan = make_plan(audit_mod.profile_for_prompt(profile), args.brief, target_count=args.count,
-                     discovery_share=args.discovery, folder=args.folder or "",
-                     feedback=args.feedback or "", model=args.model)
+    if args.from_file:
+        plan = parse_manual_reply(Path(args.from_file).read_text(encoding="utf-8"))
+    elif args.manual or not os.environ.get("ANTHROPIC_API_KEY"):
+        slug = args.name or slugify(args.brief)[:40]
+        prompt_path = DATA / "runs" / slug / "prompt.md"
+        prompt_path.parent.mkdir(parents=True, exist_ok=True)
+        user = user_message(audit_mod.profile_for_prompt(profile), args.brief, args.count,
+                            args.discovery, args.folder or "", args.feedback or "")
+        prompt_path.write_text(manual_prompt(user), encoding="utf-8")
+        reply_path = prompt_path.parent / "reply.txt"
+        print("No API key in use, so here's the manual route:")
+        print(f"  1. Open {prompt_path}, copy everything, and paste it into a new Claude chat.")
+        print(f"  2. Save Claude's whole reply to {reply_path}")
+        print(f"  3. Run:  curator plan \"{args.brief}\" --name {slug} --count {args.count} --from-file {reply_path}")
+        return
+    else:
+        plan = make_plan(audit_mod.profile_for_prompt(profile), args.brief, target_count=args.count,
+                         discovery_share=args.discovery, folder=args.folder or "",
+                         feedback=args.feedback or "", model=args.model)
     slug = args.name or slugify(plan.name)
     run = DATA / "runs" / slug
     save_json(plan.model_dump(), run / "plan.json")
@@ -131,6 +147,9 @@ def main(argv=None):
     s.add_argument("--folder")
     s.add_argument("--feedback", help='standing feedback, e.g. "too safe last time"')
     s.add_argument("--model", default=DEFAULT_MODEL)
+    s.add_argument("--manual", action="store_true",
+                   help="write the prompt to a file to paste into a Claude chat (default when no API key is set)")
+    s.add_argument("--from-file", help="a saved Claude chat reply containing the plan JSON")
     s.set_defaults(func=cmd_plan)
 
     s = sub.add_parser("build")

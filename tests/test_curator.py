@@ -182,6 +182,30 @@ def test_planner_parses_forced_tool_output():
     assert "<listener_evidence>" in captured["messages"][0]["content"]
 
 
+def test_manual_prompt_round_trip():
+    from curator.plan import manual_prompt, parse_manual_reply
+    prompt = manual_prompt("Brief: driving")
+    assert "Brief: driving" in prompt and '"tracks"' in prompt
+    reply = """Here's your plan!
+
+```json
+{"name": "Rearview", "description": "for long drives.", "folder": "everyday", "arc": ["warm start"],
+ "version_policy": "studio", "tracks": [{"title": "Black", "artist": "Pearl Jam", "intent": "anchor", "why": "opener"}]}
+```
+Enjoy."""
+    assert parse_manual_reply(reply).tracks[0].title == "Black"
+
+
+def test_manual_mode_without_key(tmp_path, monkeypatch, capsys):
+    import curator.cli as cli
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr(cli, "DATA", tmp_path)
+    (tmp_path / "profile.json").write_text(json.dumps(audit.build_profile(snapshot())))
+    cli.main(["plan", "long drives", "--name", "drive"])
+    assert (tmp_path / "runs" / "drive" / "prompt.md").exists()
+    assert "--from-file" in capsys.readouterr().out
+
+
 # ---------------------------------------------------------------- HTTP client
 
 @responses.activate
