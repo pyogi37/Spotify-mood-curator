@@ -92,7 +92,7 @@ def cmd_plan(args):
         slug = args.name or slugify(args.brief)[:40]
         prompt_path = DATA / "runs" / slug / "prompt.md"
         prompt_path.parent.mkdir(parents=True, exist_ok=True)
-        user = user_message(audit_mod.profile_for_prompt(profile), args.brief, args.count,
+        user = user_message(audit_mod.profile_for_prompt(profile, n_tracks=args.evidence_tracks), args.brief, args.count,
                             args.discovery, args.folder or "", args.feedback or "")
         prompt_path.write_text(manual_prompt(user), encoding="utf-8")
         reply_path = prompt_path.parent / "reply.txt"
@@ -102,7 +102,7 @@ def cmd_plan(args):
         print(f"  3. Run:  curator plan \"{args.brief}\" --name {slug} --count {args.count} --from-file {reply_path}")
         return
     else:
-        plan = make_plan(audit_mod.profile_for_prompt(profile), args.brief, target_count=args.count,
+        plan = make_plan(audit_mod.profile_for_prompt(profile, n_tracks=args.evidence_tracks), args.brief, target_count=args.count,
                          discovery_share=args.discovery, folder=args.folder or "",
                          feedback=args.feedback or "", model=args.model)
     slug = args.name or slugify(plan.name)
@@ -169,6 +169,8 @@ def main(argv=None):
     s.add_argument("--discovery", type=float, default=0.3, help="share of discoveries, 0-1")
     s.add_argument("--folder")
     s.add_argument("--feedback", help='standing feedback, e.g. "too safe last time"')
+    s.add_argument("--evidence-tracks", type=int, default=100,
+                   help="how many of your most-evidenced tracks the planner sees (raise it for favourites playlists)")
     s.add_argument("--model", default=DEFAULT_MODEL)
     s.add_argument("--manual", action="store_true",
                    help="write the prompt to a file to paste into a Claude chat (default when no API key is set)")
