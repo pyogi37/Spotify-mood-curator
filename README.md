@@ -90,6 +90,7 @@ This was a fair trade-off for a personal experiment, not the right choice for a 
 The costs are real:
 
 - **Terms of use.** Spotify's terms restrict automated access to the service. Run this only on your own account, at your own pace, and read the terms yourself. This is a personal-use experiment, not a tool for automating Spotify at scale.
+- **Spotify's developer rules and AI.** Spotify's Developer Policy (section III.14) says Spotify data shouldn't go into an AI model. This tool sends a summary of your own listening to Claude to plan playlists: top artists, most-played and saved songs, and playlist names. I built it for my own account and a few friends, and I'm fine with that for personal use. If you set up your own app and add friends, Spotify holds you, as the app's owner, to these rules. Read the policy and decide for yourself before you run it.
 - **Fragility.** Any UI change can break a step, and clicking through the interface is slow (a full library pass took hours).
 
 The interesting part is the agent design (evidence weighting, a plan you approve, resumable progress files and verification against what was actually saved), and it carries over unchanged to the [API version](#api-version), which is now the recommended route. The browser route is still the one that can make library folders and upload covers.
